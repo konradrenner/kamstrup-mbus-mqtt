@@ -1,14 +1,14 @@
 [Unit]
 Description=Kamstrup M-Bus to MQTT
-After=network-online.target
-Wants=network-online.target
+After=network-online.target mosquitto.service
+Wants=network-online.target mosquitto.service
 
 [Service]
 Type=simple
 User=kamstrup
 Group=kamstrup
-WorkingDirectory=/opt/kamstrup-mbus-mqtt
-ExecStart=/usr/bin/java -jar /opt/kamstrup-mbus-mqtt/quarkus-run.jar
+WorkingDirectory=/opt/mbus
+ExecStart=/opt/mbus/run.sh
 Restart=always
 RestartSec=3
 
