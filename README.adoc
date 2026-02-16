@@ -1,0 +1,59 @@
+= README
+
+IMPORTANT: Diese Stück Software dient der Einbindung eines Kamstrup Zählers in meine private Hausautomatisierung, sollte es für jemand anderes nicht funktionieren: gerne forken, aber nicht damit rechnen das ich irgendetwas fixe.
+
+Dieses Projekt stellt eine kleine Quarkus App zur Verfügung die Daten von Kamstrup Zählern (flowIQ) auslesen kann und via MQTT und REST Schnittstelle publizieren kann (openapi via /q/openapi verfügbar). Eine kleine Web-UI ist auch inkludiert, um Daten auf einfachen Weg darzustellen.
+
+Wichtig: Die Applikation ist aktuell nur mit dem kamstrup link:https://www.kamstrup.com/de-de/product-centre/wireless-mbus-dongle[wm-Bus Dongle] getestet, in Kombination mit einem np Link USB-MBUS-M (um den kamstrup Dongle via USB auslesen zu können).
+
+Das Projekt verwendet maven und zumindest Java 25. Quarkus unterstützt native Builds, damit eine JVM nicht unbedingt notwendig ist.
+
+== config
+
+Das default-set von Config Parameter ist wie üblich bei Quarkus in application.properties zu finden und kann über Umgebungsvariablen übersteuert werden:
+
+[source,bash]
+----
+include::kamstrup-mbus-mqtt/src/main/resources/application.properties[]
+----
+
+== mqtt
+
+Topic: kamstrup/mbus
+
+Payload Beispiel:
+
+[source,json]
+----
+{
+  "ts": "2026-02-16T12:34:56Z",
+  "primaryAddress": 26,
+  "meterIdBcd": "24890526",
+  "manufacturer": "KAM",
+  "versionId": 27,
+  "deviceType": 22,
+  "accessNumber": 4,
+  "status": 0,
+  "volume_m3": 560.731,
+  "waterTemp_C": 6,
+  "ambientTemp_C": 11,
+  "infoCodeRaw16": 0
+}
+----
+
+== systemd
+
+Da es sich um eine Java Applikation handelt, muss Java installiert sein. Sofern das gegeben ist, kann bspw. mit folgenden Befehlen und der in diesem Repo befindlichen .service Datei ein systemd Dienst angelegt werden:
+
+[source,bash]
+----
+sudo useradd -r -s /usr/sbin/nologin kamstrup || true
+sudo mkdir -p /opt/kamstrup-mbus-mqtt
+sudo cp target/quarkus-app/quarkus-run.jar /opt/kamstrup-mbus-mqtt/
+sudo chown -R kamstrup:kamstrup /opt/kamstrup-mbus-mqtt
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now kamstrup-mbus-mqtt
+sudo journalctl -u kamstrup-mbus-mqtt -f
+----
+

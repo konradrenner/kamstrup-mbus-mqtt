@@ -1,0 +1,23 @@
+[Unit]
+Description=Kamstrup M-Bus to MQTT
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kamstrup
+Group=kamstrup
+WorkingDirectory=/opt/kamstrup-mbus-mqtt
+ExecStart=/usr/bin/java -jar /opt/kamstrup-mbus-mqtt/quarkus-run.jar
+Restart=always
+RestartSec=3
+
+# Serial permissions (alternativ: User in dialout/tty Gruppe)
+# SupplementaryGroups=dialout
+
+# Logs in journal
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
