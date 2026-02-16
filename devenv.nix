@@ -11,6 +11,7 @@
     pkgs.fontconfig
     pkgs.plantuml
     pkgs.netbeans
+    pkgs.vscode
     pkgs.quarkus
     pkgs.gh
     pkgs.curl
