@@ -4,261 +4,151 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Kamstrup M-Bus Live</title>
-
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Optional: nicer font rendering -->
   <style>
-    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body { font-family: system-ui, sans-serif; margin: 16px; }
+    .box { border: 1px solid #ccc; padding: 12px; margin: 12px 0; }
+    .muted { color: #666; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #f5f5f5; padding: 8px; }
+    ul { margin: 6px 0 0 18px; }
   </style>
 </head>
+<body>
+  <h1>Kamstrup M-Bus Live</h1>
+  <p class="muted">Auto-Refresh alle 2 Sekunden · REST: <code>/api/last</code></p>
 
-<body class="min-h-screen bg-slate-50 text-slate-900">
-  <div class="mx-auto max-w-4xl px-4 py-8">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-semibold tracking-tight">Kamstrup M-Bus Live</h1>
-        <p class="text-sm text-slate-500">
-          Auto-Refresh alle 2 Sekunden · REST:
-          <code class="rounded bg-slate-200 px-2 py-0.5 text-[12px] text-slate-700">/api/last</code>
-        </p>
-      </div>
+  <div class="box">
+    <div><b>Status:</b> <span id="status">Lade…</span></div>
+  </div>
 
-      <div class="flex items-center gap-2">
-        <span id="statusBadge" class="inline-flex items-center gap-2 rounded-full bg-slate-200 px-3 py-1 text-sm text-slate-700">
-          <span class="h-2 w-2 rounded-full bg-slate-500"></span>
-          <span>Lade…</span>
-        </span>
-      </div>
-    </div>
+  <div class="box">
+    <div><b>Timestamp:</b> <span id="ts">—</span></div>
+    <div><b>Meter ID:</b> <span id="meterId">—</span></div>
+    <div><b>Hersteller:</b> <span id="manufacturer">—</span></div>
+    <div><b>Primary:</b> <span id="primary">—</span></div>
+    <div><b>Volumen (m³):</b> <span id="volume">—</span></div>
+    <div><b>Wassertemperatur (°C):</b> <span id="waterTemp">—</span></div>
+    <div><b>Umgebungstemperatur (°C):</b> <span id="ambientTemp">—</span></div>
+    <div><b>Access#:</b> <span id="accessNumber">—</span></div>
+    <div><b>Status Hex:</b> <span id="statusHex">—</span></div>
+  </div>
 
-    <div class="mt-6 grid gap-6">
-      <!-- Main card -->
-      <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-        <div class="border-b border-slate-100 px-6 py-4">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
-                <!-- simple icon -->
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M7 7h10M7 12h10M7 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div>
-                <div class="text-sm text-slate-500">Letzte Messung</div>
-                <div id="headline" class="text-lg font-semibold">—</div>
-              </div>
-            </div>
+  <div class="box">
+    <div><b>Aktive InfoCodes:</b></div>
+    <div id="infoNone" class="muted">—</div>
+    <ul id="infoList"></ul>
+  </div>
 
-            <div class="flex flex-wrap items-center gap-2">
-              <span id="meterIdChip" class="hidden rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700"></span>
-              <span id="manufacturerChip" class="hidden rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700"></span>
-              <span id="primaryChip" class="hidden rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700"></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="px-6 py-5">
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
-              <div class="text-xs font-medium uppercase tracking-wide text-slate-500">Volumen</div>
-              <div class="mt-1 text-3xl font-semibold">
-                <span id="volume">—</span>
-                <span class="text-base font-medium text-slate-500">m³</span>
-              </div>
-              <div class="mt-2 text-sm text-slate-500">
-                Timestamp: <span id="ts">—</span>
-              </div>
-            </div>
-
-            <div class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
-              <div class="text-xs font-medium uppercase tracking-wide text-slate-500">Temperaturen</div>
-              <div class="mt-2 grid grid-cols-2 gap-3">
-                <div class="rounded-lg bg-white p-3 ring-1 ring-slate-200">
-                  <div class="text-xs text-slate-500">Wasser</div>
-                  <div class="mt-1 text-xl font-semibold"><span id="waterTemp">—</span> °C</div>
-                </div>
-                <div class="rounded-lg bg-white p-3 ring-1 ring-slate-200">
-                  <div class="text-xs text-slate-500">Umgebung</div>
-                  <div class="mt-1 text-xl font-semibold"><span id="ambientTemp">—</span> °C</div>
-                </div>
-              </div>
-              <div class="mt-3 text-sm text-slate-500">
-                Access#: <span id="accessNumber">—</span> · Status: <span id="statusHex">—</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-6">
-            <div class="flex items-center justify-between">
-              <div class="text-sm font-semibold">InfoCodes</div>
-              <div id="infoSummary" class="text-sm text-slate-500">—</div>
-            </div>
-            <div id="infoCodes" class="mt-3 flex flex-wrap gap-2">
-              <!-- badges rendered here -->
-            </div>
-
-            <div class="mt-6">
-              <div class="text-sm font-semibold">Raw Frame</div>
-              <pre id="rawFrame" class="mt-2 max-h-56 overflow-auto rounded-xl bg-slate-900 p-4 text-xs text-slate-100 ring-1 ring-slate-800">—</pre>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer / helper -->
-      <div class="text-xs text-slate-500">
-        Tipp: Wenn du MQTT abonnierst, nutze z. B. <code class="rounded bg-slate-200 px-2 py-0.5">mosquitto_sub</code>.
-      </div>
-    </div>
+  <div class="box">
+    <div><b>Raw Frame:</b></div>
+    <pre id="rawFrame">—</pre>
   </div>
 
   <script>
-    function escapeHtml(s) {
-      return String(s ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+    function setText(id, value) {
+      var el = document.getElementById(id);
+      el.textContent = (value === null || value === undefined || value === "") ? "—" : String(value);
     }
 
-    function fmtNumber(n, digits = 3) {
-      if (n === null || n === undefined || n === "") return "—";
-      const num = Number(n);
-      if (Number.isNaN(num)) return "—";
-      return num.toFixed(digits).replace(/\.?0+$/, "");
+    function toStatusHex(v) {
+      if (v === null || v === undefined) return "—";
+      var n = Number(v);
+      if (Number.isNaN(n)) return "—";
+      var h = n.toString(16).toUpperCase();
+      if (h.length < 2) h = "0" + h;
+      return "0x" + h;
     }
 
-    function setStatusBadge(kind, text) {
-      const badge = document.getElementById("statusBadge");
-      let bg = "bg-slate-200", dot = "bg-slate-500", fg = "text-slate-700";
-
-      if (kind === "ok")      { bg = "bg-emerald-100"; dot = "bg-emerald-600"; fg = "text-emerald-900"; }
-      if (kind === "warn")    { bg = "bg-amber-100";   dot = "bg-amber-600";   fg = "text-amber-900"; }
-      if (kind === "error")   { bg = "bg-rose-100";    dot = "bg-rose-600";    fg = "text-rose-900"; }
-      if (kind === "loading") { bg = "bg-slate-200";   dot = "bg-slate-500";   fg = "text-slate-700"; }
-
-      badge.className = `inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm ${bg} ${fg}`;
-      badge.innerHTML = `<span class="h-2 w-2 rounded-full ${dot}"></span><span>${escapeHtml(text)}</span>`;
-    }
-
-    function badgeClassFor(codeName) {
-      // color mapping
-      switch (codeName) {
-        case "BURST":   return "bg-rose-100 text-rose-900 ring-1 ring-rose-200";
-        case "LEAK":    return "bg-amber-100 text-amber-900 ring-1 ring-amber-200";
-        case "REVERSE": return "bg-sky-100 text-sky-900 ring-1 ring-sky-200";
-        case "DRY":     return "bg-slate-200 text-slate-900 ring-1 ring-slate-300";
-        default:        return "bg-slate-100 text-slate-900 ring-1 ring-slate-200";
-      }
+    function clearInfoCodes() {
+      document.getElementById("infoList").innerHTML = "";
+      document.getElementById("infoNone").textContent = "Keine aktiven InfoCodes";
     }
 
     function renderInfoCodes(infoCodes) {
-      const wrap = document.getElementById("infoCodes");
-      const summary = document.getElementById("infoSummary");
-      wrap.innerHTML = "";
+      var list = document.getElementById("infoList");
+      list.innerHTML = "";
 
-      const list = Array.isArray(infoCodes) ? infoCodes : [];
-      const active = list.filter(c => c && c.active);
+      if (!Array.isArray(infoCodes) || infoCodes.length === 0) {
+        document.getElementById("infoNone").textContent = "Keine aktiven InfoCodes";
+        return;
+      }
+
+      var active = [];
+      for (var i = 0; i < infoCodes.length; i++) {
+        var c = infoCodes[i];
+        if (c && c.active) active.push(c);
+      }
 
       if (active.length === 0) {
-        summary.textContent = "Keine aktiven InfoCodes";
-        wrap.innerHTML = `<span class="text-sm text-slate-500">Keine aktiven InfoCodes</span>`;
-        return { hasWarnings: false };
+        document.getElementById("infoNone").textContent = "Keine aktiven InfoCodes";
+        return;
       }
 
-      summary.textContent = `${active.length} aktiv`;
-      for (const c of active) {
-        const name = escapeHtml(c.name);
-        const desc = escapeHtml(c.description);
-        const hours = escapeHtml(c.hoursActiveLast30Days);
+      document.getElementById("infoNone").textContent = "";
 
-        const cls = badgeClassFor(c.name);
-        wrap.insertAdjacentHTML("beforeend", `
-          <div class="flex items-start gap-2 rounded-xl px-3 py-2 text-sm ${cls}">
-            <div class="font-semibold">${name}</div>
-            <div class="text-sm opacity-90">${desc}</div>
-            <div class="ml-auto text-xs opacity-80 whitespace-nowrap">Std: ${hours}</div>
-          </div>
-        `);
+      for (var j = 0; j < active.length; j++) {
+        var x = active[j];
+        var li = document.createElement("li");
+        // bewusst ohne innerHTML / Template-Strings: nur textContent
+        var text = x.name + " - " + x.description + " (Std: " + x.hoursActiveLast30Days + ")";
+        li.textContent = text;
+        list.appendChild(li);
       }
+    }
 
-      // if BURST or LEAK is active => warn
-      const warn = active.some(c => c.name === "BURST" || c.name === "LEAK" || c.name === "REVERSE" || c.name === "DRY");
-      return { hasWarnings: warn };
+    function setStatus(text) {
+      setText("status", text);
+    }
+
+    function setNoData() {
+      setStatus("Keine Daten");
+      setText("ts", null);
+      setText("meterId", null);
+      setText("manufacturer", null);
+      setText("primary", null);
+      setText("volume", null);
+      setText("waterTemp", null);
+      setText("ambientTemp", null);
+      setText("accessNumber", null);
+      setText("statusHex", null);
+      setText("rawFrame", null);
+      clearInfoCodes();
+    }
+
+    function setError() {
+      setStatus("Fehler beim Laden");
     }
 
     async function load() {
       try {
-        const res = await fetch("/api/last", { cache: "no-store" });
+        var res = await fetch("/api/last", { cache: "no-store" });
 
         if (res.status === 204) {
-          setStatusBadge("loading", "Noch keine Daten");
-          document.getElementById("headline").textContent = "Noch keine Daten empfangen";
-          document.getElementById("meterIdChip").classList.add("hidden");
-          document.getElementById("manufacturerChip").classList.add("hidden");
-          document.getElementById("primaryChip").classList.add("hidden");
-          document.getElementById("volume").textContent = "—";
-          document.getElementById("ts").textContent = "—";
-          document.getElementById("waterTemp").textContent = "—";
-          document.getElementById("ambientTemp").textContent = "—";
-          document.getElementById("accessNumber").textContent = "—";
-          document.getElementById("statusHex").textContent = "—";
-          document.getElementById("rawFrame").textContent = "—";
-          renderInfoCodes([]);
+          setNoData();
           return;
         }
 
-        const r = await res.json();
+        var r = await res.json();
 
-        const meterId = r.meterIdBcd ?? "";
-        const manufacturer = r.manufacturer ?? "";
-        const primary = r.primaryAddress ?? "";
+        setStatus("OK");
 
-        document.getElementById("headline").textContent = meterId ? `Zähler ${meterId}` : "Letzte Messung";
+        setText("ts", r.ts);
+        setText("meterId", r.meterIdBcd);
+        setText("manufacturer", r.manufacturer);
+        setText("primary", r.primaryAddress);
+        setText("volume", r.volumeM3);
+        setText("waterTemp", r.waterTempC);
+        setText("ambientTemp", r.ambientTempC);
+        setText("accessNumber", r.accessNumber);
+        setText("statusHex", toStatusHex(r.status));
+        setText("rawFrame", r.rawFrameHex);
 
-        const meterIdChip = document.getElementById("meterIdChip");
-        meterIdChip.textContent = `Meter ID: ${meterId || "—"}`;
-        meterIdChip.classList.toggle("hidden", !meterId);
-
-        const manufacturerChip = document.getElementById("manufacturerChip");
-        manufacturerChip.textContent = `Hersteller: ${manufacturer || "—"}`;
-        manufacturerChip.classList.toggle("hidden", !manufacturer);
-
-        const primaryChip = document.getElementById("primaryChip");
-        primaryChip.textContent = `Primary: ${primary !== "" ? primary : "—"}`;
-        primaryChip.classList.toggle("hidden", primary === "");
-
-        document.getElementById("volume").textContent = fmtNumber(r.volumeM3, 3);
-        document.getElementById("ts").textContent = r.ts ?? "—";
-        document.getElementById("waterTemp").textContent = (r.waterTempC ?? "—");
-        document.getElementById("ambientTemp").textContent = (r.ambientTempC ?? "—");
-        document.getElementById("accessNumber").textContent = (r.accessNumber ?? "—");
-
-        const status = r.status;
-        document.getElementById("statusHex").textContent =
-          (status === null || status === undefined) ? "—" : ("0x" + Number(status).toString(16).toUpperCase().padStart(2, "0"));
-
-        document.getElementById("rawFrame").textContent = r.rawFrameHex ?? "—";
-
-        const { hasWarnings } = renderInfoCodes(r.infoCodes);
-
-        // status badge
-        if (hasWarnings) {
-          setStatusBadge("warn", "Warnung aktiv");
-        } else {
-          setStatusBadge("ok", "OK");
-        }
+        renderInfoCodes(r.infoCodes);
 
       } catch (e) {
-        setStatusBadge("error", "Fehler beim Laden");
-        document.getElementById("headline").textContent = "Fehler beim Laden";
+        setError();
       }
     }
 
-    // initial + poll
     load();
     setInterval(load, 2000);
   </script>
