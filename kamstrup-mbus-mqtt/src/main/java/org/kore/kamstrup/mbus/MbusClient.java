@@ -20,6 +20,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.kore.kamstrup.InfoCode;
 import org.kore.kamstrup.MeterReadingEvent;
@@ -28,10 +30,12 @@ import com.fazecast.jSerialComm.SerialPort;
 
 public final class MbusClient implements AutoCloseable {
 
+  private static final Logger LOG = Logger.getLogger(MbusClient.class.getName());
+
   private final SerialPort port;
 
   public MbusClient(String portName, int baud) {
-    System.out.println("[MBUS] Opening " + portName + " @ " + baud + " (8E1)");
+    LOG.info(() -> "[MBUS] Opening " + portName + " @ " + baud + " (8E1)");
     this.port = SerialPort.getCommPort(portName);
     this.port.setComPortParameters(baud, 8, SerialPort.ONE_STOP_BIT, SerialPort.EVEN_PARITY);
     this.port.setFlowControl(SerialPort.FLOW_CONTROL_DISABLED);
@@ -42,16 +46,16 @@ public final class MbusClient implements AutoCloseable {
     if (!this.port.openPort()) {
       throw new IllegalStateException("Could not open serial port: " + portName);
     }
-    System.out.println("[MBUS] Port opened OK: " + this.port.getSystemPortName());
+    LOG.info(() -> "[MBUS] Port opened OK: " + this.port.getSystemPortName());
   }
 
   public void normalize(int address) {
     write(shortFrame(C_SND_NKE, address));
     byte[] f = readOneFrame(1200);
     if (isAck(f)) {
-      System.out.println("[MBUS] ACK after SND_NKE");
+      LOG.fine("[MBUS] ACK after SND_NKE");
     } else {
-      System.out.println("[MBUS] Unexpected after SND_NKE: " + (f == null ? "(none)" : hex(f)));
+      LOG.warning(() -> "[MBUS] Unexpected after SND_NKE: " + (f == null ? "(none)" : hex(f)));
     }
   }
 
@@ -60,25 +64,25 @@ public final class MbusClient implements AutoCloseable {
 
     byte[] f = readOneFrame(3000);
     if (f == null) {
-      System.out.println("[MBUS] No response to REQ_UD2");
+      LOG.warning("[MBUS] No response to REQ_UD2");
       return null;
     }
     if (isAck(f)) {
       f = readOneFrame(3000);
       if (f == null) {
-        System.out.println("[MBUS] ACK but no data frame");
+        LOG.warning("[MBUS] ACK but no data frame");
         return null;
       }
     }
 
     if ((f[0] & 0xFF) != START_LONG) {
-      System.out.println("[MBUS] Not a long frame: " + hex(f));
+      LOG.warning("[MBUS] Not a long frame: " + hex(f));
       return null;
     }
 
     var lf = parseLongFrame(f);
     if (lf.ci() != CI_RSP_VARIABLE) {
-      System.out.println("[MBUS] Unexpected CI=0x" + hx(lf.ci()));
+      LOG.warning(() -> "[MBUS] Unexpected CI=0x" + hx(lf.ci()));
       return null;
     }
 
@@ -144,7 +148,7 @@ public final class MbusClient implements AutoCloseable {
   }
 
   private void write(byte[] frame) {
-    System.out.println("[TX] " + hex(frame));
+    LOG.fine(() -> "[TX] " + hex(frame));
     int w = port.writeBytes(frame, frame.length);
     if (w != frame.length) throw new IllegalStateException("Write failed " + w + "/" + frame.length);
   }
@@ -264,6 +268,11 @@ public final class MbusClient implements AutoCloseable {
 
   @Override
   public void close() {
-    port.closePort();
+    try {
+      LOG.fine("[MBUS] Closing port");
+      port.closePort();
+    } catch (Exception e) {
+      LOG.log(Level.WARNING, "[MBUS] Error while closing port", e);
+    }
   }
 }
