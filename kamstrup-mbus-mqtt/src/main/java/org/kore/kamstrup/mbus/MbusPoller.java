@@ -1,5 +1,6 @@
 package org.kore.kamstrup.mbus;
 
+import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -8,94 +9,163 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.kore.kamstrup.MeterReadingEvent;
 
-import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+@Startup
 @ApplicationScoped
 public class MbusPoller {
 
   private static final Logger LOG = Logger.getLogger(MbusPoller.class.getName());
 
-  @ConfigProperty(name = "mbus.port") String port;
-  @ConfigProperty(name = "mbus.baud") int baud;
-  @ConfigProperty(name = "mbus.address") int address;
-  @ConfigProperty(name = "mbus.poll-interval-ms") long pollIntervalMs;
+  @ConfigProperty(name = "mbus.port")
+  String port;
 
-  @Inject Event<MeterReadingEvent> meterReadingEvent;
+  @ConfigProperty(name = "mbus.baud")
+  int baud;
+
+  @ConfigProperty(name = "mbus.address")
+  int address;
+
+  @ConfigProperty(name = "mbus.poll-interval-ms")
+  long pollIntervalMs;
+
+  @ConfigProperty(name = "mbus.reconnect-interval-ms", defaultValue = "15000")
+  long reconnectIntervalMs;
+
+  @Inject
+  Event<MeterReadingEvent> meterReadingEvent;
+
+  @Inject
+  MbusStatus mbusStatus;
+
+  private final AtomicBoolean errorPhaseLogged = new AtomicBoolean(false);
 
   private ScheduledExecutorService exec;
-  private MbusClient client;
+  private volatile MbusClient client;
+  private volatile long nextReconnectAttemptAt = 0L;
+
   private boolean fcb;
 
   @PostConstruct
   void start() {
-    LOG.info(() -> "[POLL] Starting poller. port=" + port + " baud=" + baud +
-        " addr=" + address + " intervalMs=" + pollIntervalMs);
+    LOG.info(() -> "[POLL] Starting. port=" + port +
+        " baud=" + baud +
+        " addr=" + address +
+        " poll=" + pollIntervalMs +
+        " reconnect=" + reconnectIntervalMs);
 
-    if (pollIntervalMs <= 0) {
-      LOG.severe("[POLL] poll-interval-ms must be > 0");
-      return;
-    }
+    mbusStatus.setConfigured(port, baud, address, pollIntervalMs, reconnectIntervalMs);
 
-    try {
-      this.client = new MbusClient(port, baud);
-    } catch (Exception e) {
-      LOG.log(Level.SEVERE, "[POLL] Failed to create MbusClient (serial open failed?)", e);
-      return;
-    }
-
-    this.exec = Executors.newSingleThreadScheduledExecutor(r -> {
+    exec = Executors.newSingleThreadScheduledExecutor(r -> {
       Thread t = new Thread(r, "mbus-poller");
       t.setDaemon(true);
       return t;
     });
 
-    this.exec.scheduleWithFixedDelay(this::pollOnceSafe, 0, pollIntervalMs, TimeUnit.MILLISECONDS);
-    LOG.info("[POLL] Scheduled polling.");
+    exec.scheduleWithFixedDelay(this::tickSafe, 0, pollIntervalMs, TimeUnit.MILLISECONDS);
   }
 
   @PreDestroy
   void stop() {
-    LOG.info("[POLL] Stopping poller...");
-    if (exec != null) exec.shutdownNow();
-    if (client != null) {
-      try {
-        client.close();
-      } catch (Exception e) {
-        LOG.log(Level.WARNING, "[POLL] Error while closing client", e);
-      }
+    LOG.info("[POLL] Stopping...");
+    if (exec != null) {
+      exec.shutdownNow();
     }
+    closeClientQuietly();
   }
 
-  private void pollOnceSafe() {
+  private void tickSafe() {
     try {
-      pollOnce();
+      tick();
     } catch (Exception e) {
-      LOG.log(Level.SEVERE, "[POLL] Poll error", e);
+      if (errorPhaseLogged.compareAndSet(false, true)) {
+        LOG.log(Level.SEVERE,
+            "[POLL] Polling failed. REST/UI remains up. Further errors suppressed until recovery.",
+            e);
+      } else {
+        LOG.log(Level.FINE, "[POLL] Poll error (suppressed)", e);
+      }
+      closeClientQuietly();
     }
   }
 
-  private void pollOnce() {
-    Objects.requireNonNull(client, "client");
+  private void tick() {
 
-    LOG.fine(() -> "[POLL] Normalize (SND_NKE) addr=" + address);
+    // 1) Ensure client connection
+    if (client == null) {
+      tryReconnectIfDue();
+      return;
+    }
+
+    // 2) Normal M-Bus sequence
     client.normalize(address);
 
-    LOG.fine(() -> "[POLL] REQ_UD2 addr=" + address + " fcb=" + (fcb ? 1 : 0));
     MeterReadingEvent reading = client.readOnce(address, fcb);
     fcb = !fcb;
 
     if (reading == null) {
-      LOG.warning("[POLL] No reading (timeout / invalid frame)");
+      LOG.fine("[POLL] No reading");
       return;
     }
 
+    mbusStatus.onReading();
+
     meterReadingEvent.fireAsync(reading);
-    LOG.info(() -> "[POLL] Fired async event: meterId=" + reading.meterIdBcd() +
-        " vol=" + reading.volumeM3() + " m³");
+
+    LOG.info(() ->
+        "[POLL] Event fired: meterId=" + reading.meterIdBcd() +
+            " vol=" + reading.volumeM3());
+  }
+
+  private void tryReconnectIfDue() {
+    long now = System.currentTimeMillis();
+    if (now < nextReconnectAttemptAt) {
+      return;
+    }
+
+    nextReconnectAttemptAt = now + reconnectIntervalMs;
+
+    try {
+      LOG.info("[POLL] Attempting serial connect...");
+      client = new MbusClient(port, baud);
+
+      mbusStatus.onConnected();
+      errorPhaseLogged.set(false);
+
+      LOG.info("[POLL] Serial connected.");
+    } catch (Exception e) {
+
+      mbusStatus.onConnectFailed(e);
+
+      if (errorPhaseLogged.compareAndSet(false, true)) {
+        LOG.log(Level.SEVERE,
+            "[POLL] Cannot open serial port. Will retry. Further errors suppressed.",
+            e);
+      } else {
+        LOG.log(Level.FINE, "[POLL] Serial open failed (suppressed)", e);
+      }
+
+      client = null;
+    }
+  }
+
+  private void closeClientQuietly() {
+    MbusClient c = client;
+    client = null;
+
+    mbusStatus.onDisconnected();
+
+    if (c != null) {
+      try {
+        c.close();
+      } catch (Exception ignored) {
+        // intentionally ignored
+      }
+    }
   }
 }

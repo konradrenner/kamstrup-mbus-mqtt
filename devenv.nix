@@ -15,6 +15,7 @@
     pkgs.quarkus
     pkgs.gh
     pkgs.curl
+    pkgs.jq
     pkgs.mosquitto
     ];
 
