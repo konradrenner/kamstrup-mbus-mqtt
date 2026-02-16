@@ -15,7 +15,7 @@ public class LastReadingStore {
     return Optional.ofNullable(last.get());
   }
 
-  void onReading(@ObservesAsync MeterReadingEvent event) {
+  public void onReading(@ObservesAsync MeterReadingEvent event) {
     last.set(event);
   }
 }
