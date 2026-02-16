@@ -15,6 +15,7 @@
     pkgs.quarkus
     pkgs.gh
     pkgs.curl
+    pkgs.mosquitto
     ];
 
   # https://devenv.sh/languages/
@@ -26,6 +27,7 @@
 
   # https://devenv.sh/processes/
   # processes.dev.exec = "${lib.getExe pkgs.watchexec} -n -- ls -la";
+  processes.mosquitto.exec = "${lib.getExe pkgs.mosquitto} -p 1883 -v";
 
   # https://devenv.sh/services/
   # services.postgres.enable = true;
