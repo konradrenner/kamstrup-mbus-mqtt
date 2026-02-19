@@ -10,8 +10,10 @@
     pkgs.graphviz
     pkgs.fontconfig
     pkgs.plantuml
-    pkgs.netbeans
     pkgs.vscode
+    pkgs.vscode-extensions.redhat.java
+    pkgs.vscode-extensions.jebbs.plantuml
+    pkgs.vscode-extensions.asciidoctor.asciidoctor-vscode
     pkgs.quarkus
     pkgs.gh
     pkgs.curl
@@ -42,6 +44,26 @@
   enterShell = ''
     hello         # Run scripts directly
     git --version # Use packages
+
+    OS_TYPE=$(uname)
+    if [[ "$OS_TYPE" == "Linux" ]]; then
+
+      if [ -f /etc/profile ]; then
+        source /etc/profile
+      fi
+      if [ -f ~/.bashrc ]; then
+        source ~/.bashrc
+      fi
+
+      alias code="code --no-sandbox ."
+
+    elif [[ "$OS_TYPE" == "Darwin" ]]; then
+      alias code="code --no-sandbox ."
+
+    else
+      echo "Nicht unterstütztes Betriebssystem: $OS_TYPE"
+      exit 1
+    fi
   '';
 
   # https://devenv.sh/tasks/
@@ -55,24 +77,6 @@
     echo "Running tests"
     git --version | grep --color=auto "${pkgs.git.version}"
 
-    OS_TYPE=$(uname)
-    if [[ "$OS_TYPE" == "Linux" ]]; then
-      alias startide="netbeans --userdir $(pwd)/.netbeans --fontsize 14 > /dev/null 2>&1 &"
-
-      if [ -f /etc/profile ]; then
-        source /etc/profile
-      fi
-      if [ -f ~/.bashrc ]; then
-        source ~/.bashrc
-      fi
-
-    elif [[ "$OS_TYPE" == "Darwin" ]]; then
-      alias startide="netbeans --userdir $(pwd)/.netbeans > /dev/null 2>&1 &"
-
-    else
-      echo "Nicht unterstütztes Betriebssystem: $OS_TYPE"
-      exit 1
-    fi
   '';
 
   # https://devenv.sh/git-hooks/
