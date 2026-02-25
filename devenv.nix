@@ -6,16 +6,7 @@
 
   # https://devenv.sh/packages/
   packages = [
-    pkgs.git
-    pkgs.graphviz
-    pkgs.fontconfig
-    pkgs.plantuml
-    pkgs.netbeans
-    pkgs.vscode
     pkgs.quarkus
-    pkgs.gh
-    pkgs.curl
-    pkgs.jq
     pkgs.mosquitto
     ];
 
@@ -28,7 +19,8 @@
 
   # https://devenv.sh/processes/
   # processes.dev.exec = "${lib.getExe pkgs.watchexec} -n -- ls -la";
-  processes.mosquitto.exec = "${lib.getExe pkgs.mosquitto} -p 1883 -v";
+  # kann im devcontainer via host.docker.internal erreicht werden (die -h Option macht mosquitto auch ausserhalb von 127.0.0.1 erreichbar)
+  processes.mosquitto.exec = "${lib.getExe pkgs.mosquitto} -p 1883 -h 0.0.0.0 -v";
 
   # https://devenv.sh/services/
   # services.postgres.enable = true;
@@ -55,24 +47,6 @@
     echo "Running tests"
     git --version | grep --color=auto "${pkgs.git.version}"
 
-    OS_TYPE=$(uname)
-    if [[ "$OS_TYPE" == "Linux" ]]; then
-      alias startide="netbeans --userdir $(pwd)/.netbeans --fontsize 14 > /dev/null 2>&1 &"
-
-      if [ -f /etc/profile ]; then
-        source /etc/profile
-      fi
-      if [ -f ~/.bashrc ]; then
-        source ~/.bashrc
-      fi
-
-    elif [[ "$OS_TYPE" == "Darwin" ]]; then
-      alias startide="netbeans --userdir $(pwd)/.netbeans > /dev/null 2>&1 &"
-
-    else
-      echo "Nicht unterstütztes Betriebssystem: $OS_TYPE"
-      exit 1
-    fi
   '';
 
   # https://devenv.sh/git-hooks/

@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "redhat.vscode-quarkus",
+        "alphabotsec.vscode-eclipse-keybindings",
+        "asciidoctor.asciidoctor-vscode",
+        "jebbs.plantuml",
+        "vscjava.vscode-java-pack",
+        "oleksandrhavrysh.intellij-formatter",
+        "sonarsource.sonarlint-vscode"
+    ]
+}

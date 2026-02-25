@@ -1,0 +1,34 @@
+{
+    "name": "kamstrup-mbus-mqtt devcontainer",
+    "image": "ghcr.io/cachix/devenv/devcontainer:latest",
+    "features": {
+        "ghcr.io/devcontainers/features/java:1": {
+            "version": "25",
+            "jdkDistro": "graalce",
+            "installMaven": "true",
+            "mavenVersion": "3.9.12",
+            "installGradle": "false"
+        }
+    },
+    "forwardPorts": [],
+    "customizations": {
+        "vscode": {
+            "settings": {
+                // format on save kann performance verschlechtern (da ist dann Eclipse eine Rakete gegen VS Code ;-) )
+                "editor.formatOnSave": false,
+                "intellijFormatter.formatOnSave": false,
+                "editor.formatOnSaveMode": "modifications",
+                "editor.defaultFormatter": "idea-formatter.intellij-formatter"
+            },
+            "extensions": [
+                "redhat.vscode-quarkus",
+                "alphabotsec.vscode-eclipse-keybindings",
+                "asciidoctor.asciidoctor-vscode",
+                "jebbs.plantuml",
+                "vscjava.vscode-java-pack",
+                "oleksandrhavrysh.intellij-formatter",
+                "sonarsource.sonarlint-vscode"
+            ]
+        }
+    }
+}
