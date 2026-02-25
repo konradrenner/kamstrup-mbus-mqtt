@@ -34,6 +34,26 @@
   enterShell = ''
     hello         # Run scripts directly
     git --version # Use packages
+
+    OS_TYPE=$(uname)
+    if [[ "$OS_TYPE" == "Linux" ]]; then
+
+      if [ -f /etc/profile ]; then
+        source /etc/profile
+      fi
+      if [ -f ~/.bashrc ]; then
+        source ~/.bashrc
+      fi
+
+      alias code="code --no-sandbox ."
+
+    elif [[ "$OS_TYPE" == "Darwin" ]]; then
+      alias code="code --no-sandbox ."
+
+    else
+      echo "Nicht unterstütztes Betriebssystem: $OS_TYPE"
+      exit 1
+    fi
   '';
 
   # https://devenv.sh/tasks/

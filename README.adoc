@@ -6,7 +6,7 @@ Dieses Projekt stellt eine kleine Quarkus App zur Verfügung die Daten von Kamst
 
 Wichtig: Die Applikation ist aktuell nur mit dem kamstrup link:https://www.kamstrup.com/de-de/product-centre/wireless-mbus-dongle[wm-Bus Dongle] getestet, in Kombination mit einem np Link USB-MBUS-M (um den kamstrup Dongle via USB auslesen zu können).
 
-Das Projekt verwendet maven und zumindest Java 25. Quarkus unterstützt native Builds, damit eine JVM nicht unbedingt notwendig ist.
+Das Projekt verwendet maven und zumindest Java 25. Quarkus unterstützt native Builds, damit eine JVM nicht unbedingt notwendig ist. Health-Endpunkt und OpenAPI lt. Quarkus Defaults werden auch zur Verfügung gestellt.
 
 == config
 
