@@ -11,6 +11,9 @@
         }
     },
     "forwardPorts": [],
+    // nicht zwingend notwendig, aber so wird die devenv shell auf alle faelle gestartet und es muss nicht erst
+    // "direnv allow" im devcontainer gemacht werden
+    "postCreateCommand": "devenv shell -- true",
     "customizations": {
         "vscode": {
             "settings": {
