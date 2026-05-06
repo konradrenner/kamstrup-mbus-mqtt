@@ -2,6 +2,12 @@
     "name": "kamstrup-mbus-mqtt devcontainer",
     "image": "ghcr.io/cachix/devenv/devcontainer:latest",
     "forwardPorts": [],
+    "onCreateCommand": "sudo chown -R vscode:vscode /nix /home/vscode/.cache /home/vscode/.local 2>/dev/null || true",
+    "updateContentCommand": "cd /workspaces/kamstrup-mbus-mqtt && devenv shell -- true",
+    "postCreateCommand": "cd /workspaces/kamstrup-mbus-mqtt && direnv allow",
+    "remoteEnv": {
+        "DIRENV_LOG_FORMAT": ""
+    },
     "customizations": {
         "vscode": {
             "settings": {
@@ -9,7 +15,9 @@
                 "editor.formatOnSave": false,
                 "intellijFormatter.formatOnSave": false,
                 "editor.formatOnSaveMode": "modifications",
-                "editor.defaultFormatter": "idea-formatter.intellij-formatter"
+                "editor.defaultFormatter": "idea-formatter.intellij-formatter",
+                "direnv.restart.automatic": true,
+                "terminal.integrated.defaultProfile.linux": "bash"
             },
             "extensions": [
                 "mkhl.direnv",
