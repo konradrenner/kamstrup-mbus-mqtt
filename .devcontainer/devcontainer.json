@@ -1,19 +1,7 @@
 {
     "name": "kamstrup-mbus-mqtt devcontainer",
     "image": "ghcr.io/cachix/devenv/devcontainer:latest",
-    "features": {
-        "ghcr.io/devcontainers/features/java:1": {
-            "version": "25",
-            "jdkDistro": "graalce",
-            "installMaven": "true",
-            "mavenVersion": "3.9.12",
-            "installGradle": "false"
-        }
-    },
     "forwardPorts": [],
-    // nicht zwingend notwendig, aber so wird die devenv shell auf alle faelle gestartet und es muss nicht erst
-    // "direnv allow" im devcontainer gemacht werden
-    "postCreateCommand": "devenv shell -- true",
     "customizations": {
         "vscode": {
             "settings": {
@@ -24,6 +12,7 @@
                 "editor.defaultFormatter": "idea-formatter.intellij-formatter"
             },
             "extensions": [
+                "mkhl.direnv",
                 "redhat.vscode-quarkus",
                 "alphabotsec.vscode-eclipse-keybindings",
                 "asciidoctor.asciidoctor-vscode",
